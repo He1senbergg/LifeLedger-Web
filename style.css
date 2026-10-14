@@ -47,6 +47,7 @@ main,main>section,.panel,.form-grid,.form-grid>*,.metrics,.metrics>*,.project-ca
 #ledgerView>.metrics .currency-metric-line{font-size:inherit!important;overflow-wrap:normal}
 #ledgerView>.metrics .currency-metric-line>span{font-size:inherit;color:#151515}
 #ledgerView>.metrics .currency-metric-line>*{flex:none}
+.currency-cny{font-size:14px;font-variant-numeric:tabular-nums;margin:-6px 0 12px;color:#24332f}
 #ledgerView>.metrics .currency-metric-line small{color:#151515}
 #ledgerView>.metrics article:nth-child(3) .currency-metric-line>span{color:white}
 #ledgerView>.metrics article:nth-child(3) .currency-metric-line small{color:white}
