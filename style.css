@@ -41,3 +41,12 @@ main,main>section,.panel,.form-grid,.form-grid>*,.metrics,.metrics>*,.project-ca
 .month-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}.month-range-fields .month-label{min-width:0;width:auto;gap:8px}.month-range-fields input{min-width:0;width:160px}@media(max-width:760px){.month-range-fields{width:100%;gap:10px}.month-range-fields .month-label{width:auto;flex-direction:column;align-items:stretch;gap:7px}.month-range-fields input{width:100%;max-width:100%;padding:9px 8px}.month-range-fields .month-label{font-size:12px}}
 
 .trend-controls{display:flex;gap:15px;flex-wrap:wrap;margin:15px 0}.trend-controls label{flex:1;min-width:100px;max-width:220px}.all-currency-sum{font-size:clamp(16px,2.4vw,28px)!important;line-height:1.6;letter-spacing:0!important;min-width:0}.currency-metric-line{display:flex;align-items:baseline;gap:6px;white-space:nowrap;min-width:0;max-width:100%}.currency-metric-line small{font-size:.55em;flex:none}.group-evidence{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:12px}.group-evidence summary{cursor:pointer;font-weight:600}.group-evidence-row{display:flex;gap:12px;justify-content:space-between;border-top:1px solid var(--line);padding:10px 0;font-size:13px}.group-evidence-row span{min-width:0;overflow-wrap:anywhere}.group-evidence-row strong{white-space:nowrap}.group-evidence-row button{padding:4px 8px;flex:none}.group-evidence .muted{margin:6px 0}
+#ledgerView>.metrics{grid-template-columns:minmax(0,1fr)}
+#ledgerView>.metrics article:nth-child(3){order:1}
+#ledgerView>.metrics strong,#ledgerView>.metrics .all-currency-sum{font-size:27px!important;letter-spacing:-.8px}
+#ledgerView>.metrics .currency-metric-line{font-size:inherit!important;overflow-wrap:normal}
+#ledgerView>.metrics .currency-metric-line>span{font-size:inherit;color:inherit}
+.group-evidence-row{display:grid;grid-template-columns:minmax(0,1fr) 150px 80px;align-items:center;gap:16px}
+.group-evidence-row strong{text-align:right;font-variant-numeric:tabular-nums}
+.group-evidence-row button{justify-self:end;white-space:nowrap}
+@media(max-width:760px){.group-evidence-row{grid-template-columns:minmax(0,1fr) 105px 54px;gap:8px}.group-evidence-row button{font-size:11px;padding:6px}.group-evidence-row strong{font-size:13px}}
