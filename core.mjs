@@ -43,12 +43,13 @@ export function totals(records,currency='CNY'){
   if(r.kind==='历史净额')legacyNet+=cents(r.amount);
  }return {income:income/100,expense:expense/100,investment:investment/100,legacyNet:legacyNet/100,net:(income-expense-investment)/100};
 }
-export function accountBalances(ledger,records,month){
+export function accountBalances(ledger,records,month,asOf=null){
  const snapshot=(ledger.snapshots??[]).find(s=>s.month===month&&s.position==='opening'); if(!snapshot)return [];
  const map=new Map(snapshot.balances.map(b=>[b.account.replace(/\s*\(\$\)/g,'').trim(),{...b,account:b.account.replace(/\s*\(\$\)/g,'').trim()}]));
- const rs=records.filter(r=>r.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||a.updatedAt.localeCompare(b.updatedAt));
+ const rs=records.filter(r=>!r.deleted&&r.date.startsWith(month)&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||a.updatedAt.localeCompare(b.updatedAt));
  for(const r of rs){
   if(['理财余额','国债余额'].includes(r.kind)){map.set(r.kind,{account:r.kind,currency:r.currency,amount:r.amount});continue;}
+  if(['理财支出','国债支出'].includes(r.kind)){const key=r.kind==='理财支出'?'理财余额':'国债余额',b=map.get(key)||{account:key,currency:r.currency,amount:0};b.amount=Math.round((b.amount+r.amount)*100)/100;map.set(key,b);}
   const b=map.get(r.account);if(b&&b.currency===r.currency)b.amount=Math.round((b.amount-r.amount)*100)/100;
  }return [...map.values()];
 }
