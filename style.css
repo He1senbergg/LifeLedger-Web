@@ -49,6 +49,7 @@ main,main>section,.panel,.form-grid,.form-grid>*,.metrics,.metrics>*,.project-ca
 #ledgerView>.metrics .currency-metric-line>*{flex:none}
 .currency-cny{font-size:14px;font-variant-numeric:tabular-nums;margin:-6px 0 12px;color:#24332f}
 .project-flow-out{color:#c13f3f}.project-flow-in{color:#238052}
+.project-review.review-complete{padding:14px 18px}.review-complete-details>summary{cursor:pointer;font-size:16px;font-weight:600;color:#456446;line-height:1.6}.review-complete-details[open]>summary{margin-bottom:12px}
 #ledgerView>.metrics .currency-metric-line small{color:#151515}
 #ledgerView>.metrics article:nth-child(3) .currency-metric-line>span{color:white}
 #ledgerView>.metrics article:nth-child(3) .currency-metric-line small{color:white}
