@@ -152,6 +152,7 @@ function renderBalanceTrend(){
 }
 function showBalancePoint(ev){const p=ev.target.closest('[data-balance-month]');if(!p)return;accountMonth=p.dataset.balanceMonth;selectedBalancePoint=p.dataset.balanceKey;accountAsOf=p.dataset.balanceDate;renderAccounts();}
 $('balanceTrend').onclick=showBalancePoint;$('balanceTrend').onkeydown=ev=>{if(['Enter',' '].includes(ev.key)){ev.preventDefault();showBalancePoint(ev);}};
+document.addEventListener('click',ev=>{if(!ev.target.closest('[data-balance-month]')){selectedBalancePoint=null;$('balanceTrendDetail').hidden=true;}});
 
 $('balanceMonth').onchange=()=>{accountMonth=$('balanceMonth').value;selectedBalancePoint=null;accountAsOf=null;$('balanceTrendDetail').hidden=true;renderAccounts();};
 
