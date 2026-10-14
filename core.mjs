@@ -37,7 +37,7 @@ export function acknowledge(state,ledger,ops,metaOps,lastSync){
 export function totals(records,currency='CNY'){
  let income=0,expense=0,investment=0,legacyNet=0;const cents=v=>Math.round(v*100);
  for(const r of records){if(r.deleted||r.currency!==currency)continue;
-  if(r.kind==='收入')income-=cents(r.amount);
+  if(['收入','其它'].includes(r.kind))income-=cents(r.amount);
   if(r.kind==='支出')expense+=cents(r.amount);
   if(['理财支出','国债支出'].includes(r.kind))investment+=cents(r.amount);
   if(r.kind==='历史净额')legacyNet+=cents(r.amount);
