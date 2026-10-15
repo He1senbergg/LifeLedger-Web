@@ -53,11 +53,13 @@ export function accountBalances(ledger,records,month,asOf=null){
  let gold=0;for(const r of records.filter(r=>!r.deleted&&r.date<month+'-01'&&r.investment?.asset==='gold').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9))){if(isValuation(r))gold=r.amount;else if(isInvestment(r)){if(r.investment.action==='buy')gold+=r.amount;else if(r.investment.remainingValue!=null)gold=r.investment.remainingValue;}}
  if(gold)map.set('黄金余额',{account:'黄金余额',currency:'CNY',amount:gold});
  const rs=records.filter(r=>!r.deleted&&r.date.startsWith(month)&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||a.updatedAt.localeCompare(b.updatedAt));
- for(const r of rs){
-  if(isValuation(r)){const key=accountOfAsset[assetOf(r)];map.set(key,{account:key,currency:r.currency,amount:r.amount});continue;}
+ for(const r of rs)applyBalanceRecord(map,r);
+ return [...map.values()];
+}
+export function applyBalanceRecord(map,r){
+  if(isValuation(r)){const key=accountOfAsset[assetOf(r)];map.set(key,{account:key,currency:r.currency,amount:r.amount});return;}
   if(isInvestment(r)){const key=accountOfAsset[assetOf(r)],b=map.get(key)||{account:key,currency:r.currency,amount:0};if(r.investment?.remainingValue!=null)b.amount=r.investment.remainingValue;else if(r.investment?.action!=='dividend')b.amount=Math.round((b.amount+r.amount)*100)/100;map.set(key,b);}
   const b=map.get(r.account);if(b&&b.currency===r.currency)b.amount=Math.round((b.amount-r.amount)*100)/100;
- }return [...map.values()];
 }
 export function currencyBalances(balances){
  const totals=new Map();
