@@ -72,3 +72,6 @@ export function csv(records){
  const rows=[['日期','类型','类1','类2 / 备注','账户','币种','原始金额（支出正、入账负）','来源文件','来源月份','来源行','标签','投资资产','投资动作','卖出后估值'],...records.filter(r=>!r.deleted).map(r=>[r.date,kindLabel(r.kind),r.category,r.description,r.account,r.currency,r.amount,r.source?.file,r.source?.sheet,r.source?.row,(r.tags||[]).join('，'),r.investment?.asset,r.investment?.action,r.investment?.remainingValue])];
  return '\ufeff'+rows.map(r=>r.map(safe).join(',')).join('\r\n');
 }
+
+// Validate the entire batch before returning a new state; preserve original sync bases.
+export function queueRecordBatch(state,changes){const current=new Map(state.ledger.records.map(r=>[r.id,r])),pending=new Map(state.pending.map(p=>[p.record.id,p]));for(const p of pending.values())current.set(p.record.id,p.record);for(const {record,old} of changes){if(current.get(old.id)?.version!==old.version)throw Error('选中的流水已发生变化，请重新选择后再试。');validateLedger({schema:1,records:[record]});}for(const {record,old}of changes)pending.set(record.id,{baseVersion:pending.has(record.id)?pending.get(record.id).baseVersion:old.version,record});return {...state,pending:[...pending.values()]};}

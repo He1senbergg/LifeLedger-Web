@@ -1,4 +1,4 @@
-const CACHE='lifeledger-v31';
+const CACHE='lifeledger-v32';
 const ASSETS=['./','./index.html','./style.css','./app.mjs','./core.mjs','./fx.mjs','./projects.mjs','./history.mjs','./finance.mjs','./finance-ui.mjs','./data-store.mjs','./tags.mjs','./statistics.mjs','./statistics-ui.mjs','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
