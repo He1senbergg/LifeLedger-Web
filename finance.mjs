@@ -1,3 +1,4 @@
+import {resolveTags} from './tags.mjs';
 export const kindLabel=s=>String(s).replaceAll('理财','投资');
 export const isInvestment=r=>['理财支出','投资支出','国债支出'].includes(r.kind);
 export const isValuation=r=>['理财余额','投资余额','国债余额'].includes(r.kind);
@@ -8,6 +9,7 @@ export function normalizeTags(value){return [...new Set((Array.isArray(value)?va
 export function inferTags(r,meta={}){
  if(!['收入','其它','其他','支出'].includes(r.kind)||r.date<'2025-06-01')return [];
  const text=r.category+' '+r.description;
+ if(/理发|剪发|美发/.test(text))return ['个人护理'];if(r.amount<0&&/验证|开户确认|绑定/.test(text))return ['账户验证'];
   const linked=Object.entries(meta).filter(([k,p])=>k.startsWith('project:')&&!p.deleted&&p.items?.some(i=>i.recordId===r.id&&['expense','refund','reimbursement'].includes(i.role))).map(([,p])=>p.name);
  if(linked.some(n=>/电子设备|电脑|iPad|手机|手表/.test(n)))return ['电子设备'];
  if(linked.some(n=>/旅行/.test(n)))return ['旅行'];
@@ -15,12 +17,12 @@ export function inferTags(r,meta={}){
   for(const [tag,re]of [['工资奖金',/工资|薪资|年终奖/],['公积金',/公积金/],['报销回款',/报销|合租|平摊|AA|aa|付钱|回款|出钱/],['退款赔付',/退款|退钱|退货|赔|退账|退税/],['利息',/结息|利息|存息/],['红包补贴',/红包|补贴|中奖/],['劳务收入',/报酬|投稿/]])if(re.test(text))return [tag];
   return ['待分类'];
  }
- const rules=[['电子设备',/手机|小米\d|红米|iPhone|Apple|苹果|礼品卡|美区|ChatGPT|GPT|Switch|手柄|显卡|主板|内存|硬盘|极空间|NAS|StressWatch|elden|艾尔登|电池|屏幕|摄像头|充电|数据线|键盘|鼠标|耳机|音箱|电脑/i],['住房水电',/房租|租金|电费|水费|燃气|物业/],['餐饮',/早餐|早饭|午饭|晚饭|中饭|午餐|晚餐|麦当劳|肯德基|汉堡|披萨|凉拌菜|盒饭|食堂|外卖|麻辣|米饭|面条|拉面|火锅|包子|饺子|烧烤|炸鸡|餐费/],['食品饮料',/牛奶|酸奶|咖啡|饮料|奶茶|水果|鸡蛋|面包|零食|饼干|巧克力|茶叶|蛋糕|超市|蔬菜/],['交通',/打车|滴滴|高德|地铁|公交|车票|交通|停车|加油|携程|机票|火车/],['医疗健康',/医院|挂号|药|体检|牙|眼镜/],['通信订阅',/话费|流量|宽带|VPN|网费|月费|订阅/i],['日用服饰',/纸巾|抽纸|卫生纸|洗|牙刷|牙膏|衣|裤|袜|鞋|毛巾|垃圾袋|日用品/],['娱乐学习',/游戏|电影|书|课程|演出|门票/],['快递',/快递|运费|顺丰/],['人情往来',/红包|请客|礼物|份子|孝敬/]];
+ const rules=[['电子设备',/手机|小米\d|红米|iPhone|Apple|苹果|礼品卡|美区|ChatGPT|GPT|Switch|手柄|显卡|主板|内存|硬盘|极空间|NAS|StressWatch|elden|艾尔登|电池|屏幕|摄像头|充电|数据线|键盘|鼠标|耳机|音箱|电脑/i],['住房水电',/房租|租金|电费|水费|燃气|物业/],['餐饮',/早餐|早饭|午饭|晚饭|中饭|午餐|晚餐|麦当劳|肯德基|汉堡|披萨|凉拌菜|盒饭|食堂|外卖|麻辣|米饭|面条|拉面|火锅|包子|饺子|烧烤|炸鸡|餐费/],['食品饮料',/坚果|牛奶|酸奶|咖啡|饮料|奶茶|水果|鸡蛋|面包|零食|饼干|巧克力|茶叶|蛋糕|超市|蔬菜/],['交通',/打车|滴滴|高德|地铁|公交|车票|交通|停车|加油|携程|机票|火车/],['医疗健康',/医院|挂号|药|体检|牙医|牙科|眼镜/],['通信订阅',/话费|流量|宽带|VPN|网费|月费|订阅/i],['日用服饰',/纸巾|抽纸|卫生纸|洗|牙刷|牙膏|衣|裤|袜|鞋|毛巾|垃圾袋|日用品/],['娱乐学习',/游戏|电影|书|课程|演出|门票/],['快递',/快递|运费|顺丰/],['人情往来',/红包|请客|礼物|份子|孝敬/]];
  const extra=[['交通',/12306|高铁|动车|修车|电瓶车|自行车/],['旅行',/护照|签证|美签|船票|索道|JR |PASS\d/i],['住房水电',/租房|押金/],['电子设备',/散热器|绿联|转换器|风扇|电扇/],['娱乐学习',/教辅|资料册|笔记本|文具|教父/],['医疗健康',/医保|黄道益|双飞人|五黑膏|按摩/],['食品饮料',/牛腱肉|光明优加/],['日用服饰',/剃须刀/],['人情往来',/给妈妈|分享黄金收益/]];
  for(const[tag,re]of [...extra,...rules])if(re.test(text))return [tag];
  return ['待分类'];
 }
-export function tagsOf(r,meta){return Array.isArray(r.tags)?r.tags:inferTags(r,meta);}
+export function tagsOf(r,meta={}){let tags=Array.isArray(r.tags)?r.tags:inferTags(r,meta);if(['支出','收入','其它','其他'].includes(r.kind)&&r.date>='2025-06-01'&&r.tagSource?.method!=='manual'&&(!tags.length||tags[0]==='待分类')){const text=r.category+' '+r.description;if(/理发|剪发|美发/.test(text))tags=['个人护理',...tags.slice(1)];else if(r.amount<0&&/验证|开户确认|绑定/.test(text))tags=['账户验证',...tags.slice(1)];else if(/坚果|牛奶|光明高钙|光明优加/.test(text))tags=['饮食',...tags.slice(1)];}return resolveTags(tags,meta);}
 export function tagStats(records,{from,to,currency='CNY',side='expense',tag='',meta={}}){
  const groups=new Map;let total=0,count=0,untagged=0,early=0;
  for(const r of records){if(r.deleted||r.date<from||r.date>to||r.currency!==currency)continue;
