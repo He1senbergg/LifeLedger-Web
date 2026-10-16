@@ -67,3 +67,14 @@ export function plotProfitHistory(records,options,series){
  }
  return visibleProfitPoints(points,series);
 }
+
+// Keep bond snapshots separate from the aggregate equity account.
+export function buildPlatformValuations(rows){
+ if(!rows.length)throw Error('请至少填写一项估值。');
+ if(rows.some(r=>!['cn','us','bond'].includes(r.market)))throw Error('资产类别无效。');
+ const stocks=rows.filter(r=>r.market!=='bond'),bonds=rows.filter(r=>r.market==='bond'),result=[];
+ if(stocks.length){const breakdown=buildBreakdown(stocks);result.push({kind:'投资余额',category:'股票平台拆分',description:'各平台A股与美股持仓市值合计',amount:round(breakdown.reduce((n,p)=>n+p.value,0)),investment:{asset:'fund',action:'valuation',platform:'各平台拆分',breakdown}});}
+ if(bonds.length>1)throw Error('国债目前按一个持仓账户汇总，请将国债市值合并为一行。');
+ if(bonds.length){const b=bonds[0],platform=String(b.platform||'').trim(),value=Number(b.value);if(!platform||platform.length>80||/[|｜+＋]/.test(platform)||String(b.value??'').trim()===''||!Number.isFinite(value)||value<0||value>1e12)throw Error('请填写国债平台及有效的非负持仓市值，无持仓填0。');result.push({kind:'国债余额',category:platform,description:'国债持仓估值',amount:round(value),investment:{asset:'bond',action:'valuation',platform}});}
+ return result;
+}
