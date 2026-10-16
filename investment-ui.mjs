@@ -1,3 +1,4 @@
+import {createInvestmentEventIndex,eventAction,eventAsset,actionNames} from './investment-events.mjs';
 import {portfolio,profitHistory,marketNames,marketColors,marketOf,platformOf,positionKey,buildBreakdown,round,investmentRecord} from './investment-engine.mjs';
 export function createInvestmentUI(ctx){
  const $=id=>document.getElementById(id),{escape:e,money}=ctx;let records=[],asOf='',result=null,selection=null,scrollLatest=true,curveKey='',points=[],busy=false,selectedAsOf=null;
@@ -10,9 +11,34 @@ export function createInvestmentUI(ctx){
   $('investmentUnallocated').hidden=!result.unallocated;$('investmentUnallocated').textContent=`股票合计 ${money(result.unallocated)}：部分持仓缺少A股/美股拆分，仍完整计入整体。分项收益暂不完整；请更新平台拆分估值。`;
   const defaults=[['cn','博时'],['us','博时'],['us','支付宝'],['us','微众'],['bond','支付宝'],['gold','中行']],map=new Map(result.positions.map(p=>[p.key,p]));for(const [market,platform]of defaults)if(!map.has(positionKey(market,platform)))map.set(positionKey(market,platform),{market,platform,key:positionKey(market,platform),value:null,buys:0,sells:0,distributed:0,profit:null,lastValuation:null});
   $('investmentPlatforms').innerHTML=[...map.values()].filter(p=>p.platform!=='历史合并').map(p=>`<article class="platform-position"><div><h4>${e(p.platform)} · ${e(marketNames[p.market]||'A股＋美股（待拆）')}</h4><span>持仓 ${amount(p.value)} · 累计买入 ${amount(p.buys)}</span><small>收益 ${amount(p.profit)} · 收益率 ${p.roi===null||p.roi===undefined?'—':(p.roi*100).toFixed(2)+'%'}${p.lastValuation?' · 最近估值 '+p.lastValuation:''}</small></div><div class="position-actions">${['cn','us','bond','gold'].includes(p.market)?[['buy','买入'],['sell','卖出'],['valuation','更新估值'],['dividend','分红']].map(([action,label])=>`<button type="button" class="secondary" data-position-market="${p.market}" data-position-platform="${e(p.platform)}" data-position-action="${action}">${label}</button>`).join(''):'<span class="muted">请用平台拆分估值补齐分类</span>'}</div></article>`).join('');
-  const events=rs.filter(r=>!r.deleted&&investmentRecord(r)&&r.date<=date).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));$('investmentEvents').innerHTML=events.slice(0,100).map(r=>`<button type="button" class="investment-event secondary" data-investment-record="${e(r.id)}"><span>${r.date} · ${e(r.description||r.category)}<small>${e(r.investment?.breakdown?'股票平台拆分估值':r.investment?.breakdownPartial?'平台已拆，市场部分待拆':r.investment?.asset==='fund'&&r.investment?.action==='valuation'?'股票合并估值':marketNames[marketOf(r)])} · ${e(({buy:'买入',sell:'卖出',valuation:'估值',dividend:'现金分红'})[r.investment?.action]||'买入')} · ${e(platformOf(r))}</small></span><strong>${amount(r.investment?.positionValue??r.amount)}</strong></button>`).join('');
-  if(!$('profitFrom').value)$('profitFrom').value=events.at(-1)?.date||date;if(!$('profitTo').value)$('profitTo').value=date;renderCurve();
+  renderEvents();
+  if(!$('profitFrom').value)$('profitFrom').value=result.cards.map(c=>c.first).filter(Boolean).sort()[0]||date;if(!$('profitTo').value)$('profitTo').value=date;renderCurve();
  }
+
+ const eventIndex=createInvestmentEventIndex();let eventPage=1,eventTimer=null,eventRows=null,eventRenderKey='',eventOptionCount=0;
+ function renderEvents(){
+  if(!$('investmentEventsDisclosure').open)return;
+  const page=eventIndex.query(records,{from:$('investmentEventFrom').value,to:$('investmentEventTo').value,search:$('investmentEventSearch').value,page:eventPage});eventPage=page.page;
+  const key=[page.generation,page.page,page.valid].join('|');
+  if(key===eventRenderKey&&eventRows===page.matches)return;eventRenderKey=key;eventRows=page.matches;
+  $('investmentEventCount').textContent=page.valid?`共 ${page.total.toLocaleString()} 笔 · ${page.total?`第 ${page.offset+1}—${page.offset+page.rows.length} 笔 · `:''}每页100笔`:'开始日期不能晚于结束日期。';
+  for(const id of ['investmentEventPrev','investmentEventPrevBottom'])$(id).disabled=!page.valid||page.page<=1;
+  for(const id of ['investmentEventNext','investmentEventNextBottom'])$(id).disabled=!page.valid||page.page>=page.pages;
+  $('investmentEventPage').disabled=!page.valid||!page.total;
+  if(eventOptionCount!==page.pages){eventOptionCount=page.pages;$('investmentEventPage').innerHTML=Array.from({length:page.pages},(_,i)=>`<option value="${i+1}">第 ${i+1} / ${page.pages} 页</option>`).join('');}
+  $('investmentEventPage').value=String(page.page);$('investmentEventPageBottom').textContent=`第 ${page.page} / ${page.pages} 页`;
+  $('investmentEvents').innerHTML=!page.valid?'<p class="notice">请调整日期区间。</p>':page.rows.map(r=>`<button type="button" class="investment-event secondary" data-investment-record="${e(r.id)}"><span>${r.date} · ${e(r.description||r.category)}<small>${e(eventAsset(r))} · ${e(actionNames[eventAction(r)])} · ${e(platformOf(r))} · ${e(r.account)}</small></span><strong>${e(money(r.investment?.positionValue??r.amount,r.currency))}</strong></button>`).join('')||'<p class="empty">没有匹配的投资记录。可调整日期或清空搜索。</p>';
+ }
+ $('investmentEventsDisclosure').addEventListener('toggle',()=>{if($('investmentEventsDisclosure').open)renderEvents();});
+ function filterEvents(){clearTimeout(eventTimer);eventPage=1;renderEvents();}
+ for(const id of ['investmentEventFrom','investmentEventTo'])$(id).onchange=filterEvents;
+ $('investmentEventSearch').oninput=()=>{clearTimeout(eventTimer);eventPage=1;eventTimer=setTimeout(filterEvents,160);};
+ $('investmentEventSearch').onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();filterEvents();}};
+ $('investmentEventReset').onclick=()=>{$('investmentEventFrom').value='';$('investmentEventTo').value='';$('investmentEventSearch').value='';filterEvents();};
+ function changeEventPage(page){clearTimeout(eventTimer);eventPage=page;renderEvents();$('investmentEventsDisclosure').scrollIntoView({block:'start',behavior:'auto'});}
+ for(const id of ['investmentEventPrev','investmentEventPrevBottom'])$(id).onclick=()=>changeEventPage(eventPage-1);
+ for(const id of ['investmentEventNext','investmentEventNextBottom'])$(id).onclick=()=>changeEventPage(eventPage+1);
+ $('investmentEventPage').onchange=()=>changeEventPage(Number($('investmentEventPage').value));
  $('investmentDate').onchange=()=>{selectedAsOf=$('investmentDate').value;if(selectedAsOf){$('profitTo').value=selectedAsOf;render(records,selectedAsOf);}};
  function renderCurve(){if(!records.length)return;const from=$('profitFrom').value,to=$('profitTo').value,unit=$('profitUnit').value,mode=$('profitMode').value,spacing=Number($('profitSpacing').value),key=[from,to,unit].join('|');if(!from||!to||from>to){$('profitChart').innerHTML='<p class="notice">请选择有效的起止日期。</p>';$('profitDetail').hidden=true;return;}const end=to>asOf?asOf:to;points=profitHistory(records,{from,to:end,unit});if(curveKey!==key){scrollLatest=true;selection=null;curveKey=key;}const series=mode==='multi'?['total','cn','us','bond','gold']:[mode],names={total:'总收益',...marketNames},values=points.flatMap(p=>series.map(k=>p[k]).filter(v=>v!==null)),min=Math.min(0,...values),max=Math.max(1,...values),span=Math.max(1,max-min),width=Math.max($('profitScroll').clientWidth||320,80+Math.max(1,points.length-1)*spacing),height=spacing<25?325:spacing<50?290:255,x=i=>40+i*(width-80)/Math.max(1,points.length-1),y=v=>200-(v-min)/span*170;
   $('profitLegend').innerHTML=series.map(k=>`<span style="color:${marketColors[k]}">● ${names[k]}</span>`).join('');$('profitNote').textContent='累计收益金额（CNY），区间只筛选显示日期，不重置累计收益起点；空白表示无法可靠拆分。各市场均按投资标的分类，人民币购买的美股基金也属于美股。';
