@@ -1,4 +1,4 @@
-import {portfolio,portfolioBefore,marketOf,platformOf,round,buildPlatformValuations} from './investment-engine.mjs';
+import {portfolio,portfolioBefore,marketOf,platformOf,round,buildBreakdown,buildPlatformValuations} from './investment-engine.mjs';
 import {tagCatalog,availableTags,updateTag,toggleTag,changeTags,resolveTags} from './tags.mjs';
 import {createLedgerCache} from './data-store.mjs';
 import {createFinanceUI} from './finance-ui.mjs';
