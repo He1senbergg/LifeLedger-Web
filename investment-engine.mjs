@@ -49,3 +49,21 @@ export function portfolioBefore(records,old,date){if(!old||old.date!==date)retur
 
 // Crop only the unused prefix. Keep real zeroes, later missing periods and explicit unknown gaps.
 export function visibleProfitPoints(points,series){const first=points.findIndex(p=>series.some(key=>Number.isFinite(p[key])));return first<0?[]:points.slice(first);}
+
+// Chart-only values: preserve ledger/history nulls and never draw before an asset starts.
+export function plotProfitHistory(records,options,series){
+ const raw=profitHistory(records,options),byDate=new Map(raw.map(p=>[p.date,{...p,filled:{}}]));
+ const starts={};for(const r of sorted(records)){const m=marketOf(r);if(flow(r)){starts[m]??=r.date;starts.total??=r.date;}}
+ for(const key of series){const date=starts[key];if(date&&date>=options.from&&date<=options.to&&!byDate.has(date)){const p=profitHistory(records,{from:date,to:date,unit:'day'})[0];if(p)byDate.set(date,{...p,filled:{}});}}
+ const points=[...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
+ for(const key of ['total',...Object.keys(marketNames)]){
+  const known=points.map((p,i)=>Number.isFinite(p[key])?i:-1).filter(i=>i>=0);if(!known.length)continue;
+  let right=0;for(let i=0;i<points.length;i++){const p=points[i];if(Number.isFinite(p[key])||p.states?.[key]==='not-started'||(starts[key]&&p.date<starts[key]))continue;
+   while(right<known.length&&known[right]<i)right++;
+   const left=right?points[known[right-1]]:null,next=right<known.length?points[known[right]]:null;
+   if(!left&&!next)continue;const ratio=left&&next?(Date.parse(p.date)-Date.parse(left.date))/(Date.parse(next.date)-Date.parse(left.date)):0;
+   p[key]=round(left&&next?left[key]+(next[key]-left[key])*ratio:(left||next)[key]);p.filled[key]=true;
+  }
+ }
+ return visibleProfitPoints(points,series);
+}

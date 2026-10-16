@@ -177,9 +177,9 @@ async function saveFinanceMeta(key,value){await persist(s=>({...s,pendingMeta:{.
 const financeUI=createFinanceUI({escape,money,table,today:dayToday,toast,saveMeta:saveFinanceMeta,ledger:currentLedger,records:all,openRecord:openEditor,openInvestment,saveBreakdown,history:()=>getBalanceHistory().map(p=>({...p,...convertedBalance(currencyBalances(p.balances),fxData?.rates)}))});
 function renderInvestments(){const m=accountMonth||latestBalanceMonth();financeUI.investments(accountBalances(currentLedger(),all(),m,accountAsOf),all(),accountAsOf||balanceUntil(m));}
 let diagnostics=[];try{diagnostics=JSON.parse(localStorage.getItem('ll-diagnostics')||'[]');}catch{}
-function logEvent(event,result,ms=0){diagnostics.push({at:new Date().toISOString(),event,result,durationMs:Math.round(ms),version:'35'});diagnostics=diagnostics.slice(-300);try{localStorage.setItem('ll-diagnostics',JSON.stringify(diagnostics));}catch{}}
+function logEvent(event,result,ms=0){diagnostics.push({at:new Date().toISOString(),event,result,durationMs:Math.round(ms),version:'36'});diagnostics=diagnostics.slice(-300);try{localStorage.setItem('ll-diagnostics',JSON.stringify(diagnostics));}catch{}}
 window.addEventListener('error',()=>logEvent('script','error'));window.addEventListener('unhandledrejection',()=>logEvent('promise','error'));
-async function logDump(){let windows=[];if(localMode){try{windows=(await jsonFetch('/api/logs')).events;}catch{}}return {version:35,at:new Date().toISOString(),device:localMode?'Windows':'Browser',events:diagnostics,windows};}
+async function logDump(){let windows=[];if(localMode){try{windows=(await jsonFetch('/api/logs')).events;}catch{}}return {version:36,at:new Date().toISOString(),device:localMode?'Windows':'Browser',events:diagnostics,windows};}
 $('exportLogs').onclick=async()=>download(JSON.stringify(await logDump(),null,2),'诊断日志.json','application/json');
 $('dumpLogs').onclick=async()=>{let device=localStorage.getItem('ll-device-id');if(!device){device=uid();localStorage.setItem('ll-device-id',device);}await saveFinanceMeta('diagnostics:'+device,await logDump());await sync();$('logStatus').textContent=pendingCount()?'日志已保存在本机，等待同步。':'日志已转储到私有仓库账本数据的 diagnostics 区域。';};
 
