@@ -1,3 +1,4 @@
+import {createInvestmentUI} from './investment-ui.mjs';
 import {createStatisticsUI} from './statistics-ui.mjs';
 import {combinedInvestment} from './statistics.mjs';
 import {allocation,investmentSummary,tagStats,tagsOf,savingBaseline,reachMonth,kindLabel} from './finance.mjs';
@@ -34,15 +35,7 @@ export function createFinanceUI(ctx){
  $('saveForecast').onclick=()=>ctx.saveMeta('forecastAssumptions',{salary:Number($('forecastSalary').value),expense:Number($('forecastExpense').value),big:Number($('forecastBig').value),rate:Number($('forecastReturn').value)}).then(()=>ctx.toast('预测假设已保存，随账本同步。'));
  let loadedForecast=false;
  function loadForecast(meta){if(loadedForecast||!meta.forecastAssumptions)return;loadedForecast=true;const f=meta.forecastAssumptions;for(const[id,key]of [['forecastSalary','salary'],['forecastExpense','expense'],['forecastBig','big'],['forecastReturn','rate']])if(Number.isFinite(f[key])){$(id).value=f[key];$(id).dataset.edited='1';}}
- function investments(balances,records,date){
-  const summaries=investmentSummary(records,balances,date),overall=combinedInvestment(summaries);$('investmentOverall').innerHTML=`<div><span>整体累计收益率 · 非年化</span><strong>${overall.incomplete?'待补完整本金':overall.roi===null?'—':(overall.roi*100).toFixed(2)+'%'}</strong></div><div><span>累计收益</span><strong>${overall.incomplete?'—':(overall.profit>=0?'+':'')+e(money(overall.profit))}</strong></div><div><span>累计买入本金</span><strong>${e(money(overall.buys))}</strong></div><div><span>当前持仓估值</span><strong>${e(money(overall.value))}</strong></div><p>投资＋国债＋黄金：总收益 ÷ 总买入本金；不是各板块百分比相加，也不是年化。清仓收益继续计入，已卖出本金不重复计入持仓。</p>`;$('investmentAsOf').textContent=`截至 ${date} · 当前估值取账本记录，估值后的买入暂按成本、卖出按所填剩余估值；不是实时行情。`;
-  $('investmentCards').innerHTML=summaries.map(s=>`<article class="investment-card"><h3>${s.name}</h3><strong class="${s.profit>=0?'cash-in':'cash-out'}">${s.profit>=0?'+':''}${e(money(s.profit))}</strong><span>累计账面收益</span><dl><dt>累计买入本金</dt><dd>${e(money(s.buys))}</dd><dt>卖出到账</dt><dd>${e(money(s.sells))}</dd><dt>现金分红</dt><dd>${e(money(s.distributed))}</dd><dt>当前持仓估值</dt><dd>${e(money(s.value))}</dd><dt>剩余成本本金</dt><dd>${s.cost===null?'卖出成本未填，待补充':e(money(s.cost))}</dd><dt>累计收益率（非年化）</dt><dd>${s.roi===null?'—':(s.roi*100).toFixed(2)+'%'}</dd></dl><small>${s.first?'买入记录始于 '+s.first:'暂无买入记录'}${s.lastValuation?' · 最近估值 '+s.lastValuation:''}</small>${s.warning?`<p class="notice small">${e(s.warning)}</p>`:''}</article>`).join('');
-  const platforms=new Map;for(const s of summaries)for(const r of s.flows){const name=r.investment?.platform||(/博时/.test(r.category)?'博时':/支付宝/.test(r.category)?'支付宝':/微众/.test(r.category)?'微众':r.account);const key=s.name+' · '+name;platforms.set(key,(platforms.get(key)||0)+r.amount);}
-  $('investmentPlatforms').innerHTML=table(['资产 / 平台','净资金投入（买入−卖出/分红）'],[...platforms].map(([name,n])=>[name,money(n)]),true);
-  const rs=records.filter(r=>!r.deleted&&r.investment&&r.date<=date).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
-  $('investmentEvents').innerHTML=rs.map(r=>`<button class="investment-event secondary" data-investment-record="${e(r.id)}"><span>${r.date} · ${e(r.description||r.category)}<small>${e(kindLabel(r.kind))} · ${e(({buy:'买入',sell:'卖出',valuation:'估值',dividend:'现金分红'})[r.investment.action])} · ${e(r.investment.platform||r.account)}</small></span><strong>${r.investment.action==='valuation'?'':r.amount<0?'+':'−'}${e(money(Math.abs(r.amount),r.currency))}</strong></button>`).join('')||'<p class="muted">在「记一笔」选择投资类型，即可记录买入、卖出和估值。</p>';
- }
- $('investmentEvents').onclick=ev=>{const b=ev.target.closest('[data-investment-record]');if(b)ctx.openRecord(b.dataset.investmentRecord);};
+ const investmentUI=createInvestmentUI(ctx);
  const statisticsUI=createStatisticsUI(ctx);
- return {accounts:(...args)=>{loadForecast(args[2].meta||{});accounts(...args);},investments,statistics:statisticsUI.render,pie};
+ return {accounts:(...args)=>{loadForecast(args[2].meta||{});accounts(...args);},investments:(_balances,records,date)=>investmentUI.render(records,date),openSplit:investmentUI.openSplit,statistics:statisticsUI.render,pie};
 }
