@@ -38,7 +38,7 @@ export function allocation(balances,rates={}){
  const total=Object.values(groups).reduce((a,b)=>a+b,0);return {missing,total,items:[['cash','现金存款','#466c59'],['bond','国债','#8e71b5'],['fund','投资','#d2a44d']].map(([key,name,color])=>({name,color,amount:groups[key],share:total?groups[key]/total:0}))};
 }
 export function investmentSummary(records,balances,until){
- const rs=records.filter(r=>!r.deleted&&r.date<=until).sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||a.updatedAt.localeCompare(b.updatedAt));
+ const rs=records.filter(r=>!r.deleted&&r.date<=until).sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt));
  return ['fund','bond','gold'].map(asset=>{const flows=rs.filter(r=>isInvestment(r)&&assetOf(r)===asset&&r.currency==='CNY');let buys=0,sells=0,distributed=0,cost=0,realized=0;
   for(const r of flows){if(r.investment?.action==='dividend'){distributed+=-r.amount;continue;}if(r.amount>=0){buys+=r.amount;cost+=r.amount;}else{sells-=r.amount;const fraction=r.investment?.closed?1:r.investment?.costSold!=null&&cost>0?Math.min(1,r.investment.costSold/cost):null;if(fraction!==null){const soldCost=cost*fraction;realized+=-r.amount-soldCost;cost-=soldCost;}else cost=NaN;}}
   const value=balances.find(b=>b.account===accountOfAsset[asset]&&b.currency==='CNY')?.amount??0,profit=Math.round((value+sells+distributed-buys)*100)/100;

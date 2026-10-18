@@ -7,7 +7,7 @@ export const investmentRecord=r=>flow(r)||valuation(r);
 export function marketOf(r){const i=r.investment||{};return i.asset==='gold'?'gold':i.asset==='bond'||r.kind.startsWith('国债')?'bond':['cn','us'].includes(i.market)?i.market:/红利低波/.test(r.description+' '+r.category)?'cn':'us';}
 export function platformOf(r){const p=r.investment?.platform;const text=p&&p!=='跨平台合计'?p:r.category;return /[|｜+＋]/.test(text)?'历史合并':/博时/.test(text)?'博时':/微众/.test(text)?'微众':/支付宝/.test(text)?'支付宝':/中行|黄金/.test(text)?'中行':text||r.account||'未指定';}
 export const positionKey=(market,platform)=>market+'|'+platform;
-const sorted=records=>records.filter(r=>!r.deleted&&investmentRecord(r)&&r.currency==='CNY').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||a.updatedAt.localeCompare(b.updatedAt)||a.id.localeCompare(b.id));
+const sorted=records=>records.filter(r=>!r.deleted&&investmentRecord(r)&&r.currency==='CNY').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt)||a.id.localeCompare(b.id));
 const fresh=()=>({buys:0,sells:0,distributed:0,value:0,cost:0,lastValuation:null,first:null});
 function engine(){
  const classes=Object.fromEntries(Object.keys(marketNames).map(k=>[k,fresh()])),groups={fund:fresh(),bond:fresh(),gold:fresh()},positions=new Map();let mixed=false,latest=null,splitDate=null;

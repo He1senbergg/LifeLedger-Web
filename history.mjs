@@ -6,8 +6,8 @@ export function balanceHistory(ledger,records,unit='month'){
  for(const r of live){const month=r.date.slice(0,7);if(!byMonth.has(month))byMonth.set(month,[]);byMonth.get(month).push(r);}
  for(const month of months){
   const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5)),0)).toISOString().slice(0,10),until=end<latest?end:latest;
-  const initial=accountBalances(ledger,gold.filter(r=>r.date<month+'-01'),month),map=new Map(initial.map(b=>[b.account,b]));
-  const rs=(byMonth.get(month)||[]).filter(r=>r.date<=until).sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||a.updatedAt.localeCompare(b.updatedAt));
+  const initial=accountBalances(ledger,live.filter(r=>r.date<month+'-01'),month),map=new Map(initial.map(b=>[b.account,b]));
+  const rs=(byMonth.get(month)||[]).filter(r=>r.date<=until).sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9)||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt));
   const point=date=>({key:unit==='year'?month.slice(0,4):unit==='month'?month:date,date,month,balances:[...map.values()].map(b=>({...b}))});
   if(unit==='day'){
    let index=0;const cursor=new Date(month+'-01T00:00:00Z');while(cursor.toISOString().slice(0,10)<=until){const date=cursor.toISOString().slice(0,10);while(index<rs.length&&rs[index].date<=date)applyBalanceRecord(map,rs[index++]);points.push(point(date));cursor.setUTCDate(cursor.getUTCDate()+1);}

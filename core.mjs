@@ -1,6 +1,6 @@
 import {isInvestment,isValuation,assetOf,accountOfAsset,kindLabel} from './finance.mjs';
 export const KINDS=['支出','收入','其它','-','投资支出','投资余额','国债支出','国债余额','历史净额','未分类'];
-export const ACCOUNTS=['微信','支付宝','中行','招行','建行','微众','现金','校园卡','莫奈卡','日元现金','ICOCA','理财余额','国债余额','历史未记录'];
+export const ACCOUNTS=['微信','支付宝','中行','招行','建行','微众','现金','校园卡','莫奈卡','日元现金','ICOCA','理财余额','国债余额','历史未记录','公积金','补充公积金'];
 export function validateRecord(r){
  if(!r || typeof r.id!=='string'||!r.id||typeof r.version!=='string')throw Error('记录缺少编号或版本');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(r.date)||Number.isNaN(Date.parse(r.date+'T00:00:00Z'))||new Date(r.date+'T00:00:00Z').toISOString().slice(0,10)!==r.date)throw Error('日期无效');
@@ -26,6 +26,7 @@ export function mergePending(remote,pending){
 }
 export function visibleRecords(ledger,pending){const m=new Map(ledger.records.map(r=>[r.id,r]));for(const p of pending)m.set(p.record.id,p.record);return [...m.values()].filter(r=>!r.deleted);}
 export function queueRecord(state,record,old){
+ record={...record,orderAt:old?.orderAt||old?.updatedAt||record.orderAt||record.updatedAt};
  const first=state.pending.find(p=>p.record.id===record.id);
  if(first&&first.record.version!==old?.version)throw Error('这笔记录已在另一个窗口修改，请重新打开后编辑。');
  const baseVersion=first?first.baseVersion:old?.version??null;
@@ -49,16 +50,18 @@ export function totals(records,currency='CNY'){
 export function accountBalances(ledger,records,month,asOf=null){
  const snapshot=(ledger.snapshots??[]).find(s=>s.month===month&&s.position==='opening'); if(!snapshot)return [];
  const map=new Map(snapshot.balances.map(b=>[b.account.replace(/\s*\(\$\)/g,'').trim(),{...b,account:b.account.replace(/\s*\(\$\)/g,'').trim()}]));
+ for(const account of ['公积金','补充公积金'])if(!map.has(account)){const prior=records.filter(r=>!r.deleted&&r.account===account&&r.date<month+'-01');map.set(account,{account,currency:'CNY',amount:Math.round(prior.reduce((n,r)=>n-r.amount,0)*100)/100});}
  // Gold was absent from the old monthly snapshots. Rebuild this holding only, without adding it twice.
  let gold=0;for(const r of records.filter(r=>!r.deleted&&r.date<month+'-01'&&r.investment?.asset==='gold').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9))){if(isValuation(r))gold=r.amount;else if(isInvestment(r)){if(r.investment.action==='buy')gold+=r.amount;else if(r.investment.remainingValue!=null)gold=r.investment.remainingValue;}}
  if(gold)map.set('黄金余额',{account:'黄金余额',currency:'CNY',amount:gold});
- const rs=records.filter(r=>!r.deleted&&r.date.startsWith(month)&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||a.updatedAt.localeCompare(b.updatedAt));
+ const rs=records.filter(r=>!r.deleted&&r.date.startsWith(month)&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt));
  for(const r of rs)applyBalanceRecord(map,r);
  return [...map.values()];
 }
 export function applyBalanceRecord(map,r){
   if(isValuation(r)){const key=accountOfAsset[assetOf(r)];map.set(key,{account:key,currency:r.currency,amount:r.amount});return;}
   if(isInvestment(r)){const key=accountOfAsset[assetOf(r)],b=map.get(key)||{account:key,currency:r.currency,amount:0};if(r.investment?.remainingValue!=null)b.amount=r.investment.remainingValue;else if(r.investment?.action!=='dividend')b.amount=Math.round((b.amount+r.amount)*100)/100;map.set(key,b);}
+  if(['公积金','补充公积金'].includes(r.account)&&!map.has(r.account))map.set(r.account,{account:r.account,currency:r.currency,amount:0});
   const b=map.get(r.account);if(b&&b.currency===r.currency)b.amount=Math.round((b.amount-r.amount)*100)/100;
 }
 export function currencyBalances(balances){
@@ -74,4 +77,4 @@ export function csv(records){
 }
 
 // Validate the entire batch before returning a new state; preserve original sync bases.
-export function queueRecordBatch(state,changes){const current=new Map(state.ledger.records.map(r=>[r.id,r])),pending=new Map(state.pending.map(p=>[p.record.id,p]));for(const p of pending.values())current.set(p.record.id,p.record);for(const {record,old} of changes){if(current.get(old.id)?.version!==old.version)throw Error('选中的流水已发生变化，请重新选择后再试。');validateLedger({schema:1,records:[record]});}for(const {record,old}of changes)pending.set(record.id,{baseVersion:pending.has(record.id)?pending.get(record.id).baseVersion:old.version,record});return {...state,pending:[...pending.values()]};}
+export function queueRecordBatch(state,changes){const current=new Map(state.ledger.records.map(r=>[r.id,r])),pending=new Map(state.pending.map(p=>[p.record.id,p]));for(const p of pending.values())current.set(p.record.id,p.record);for(const {record,old} of changes){if(current.get(old.id)?.version!==old.version)throw Error('选中的流水已发生变化，请重新选择后再试。');validateLedger({schema:1,records:[record]});}for(const {record,old}of changes)pending.set(record.id,{baseVersion:pending.has(record.id)?pending.get(record.id).baseVersion:old.version,record:{...record,orderAt:old.orderAt||old.updatedAt}});return {...state,pending:[...pending.values()]};}
