@@ -48,13 +48,13 @@ export function totals(records,currency='CNY'){
  }return {income:income/100,expense:expense/100,investment:investment/100,legacyNet:legacyNet/100,net:(income-expense-investment)/100};
 }
 export function accountBalances(ledger,records,month,asOf=null){
- const snapshot=(ledger.snapshots??[]).find(s=>s.month===month&&s.position==='opening'); if(!snapshot)return [];
+ const openings=(ledger.snapshots??[]).filter(s=>s.position==='opening'),last=openings.reduce((latest,s)=>!latest||s.month>latest.month?s:latest,null),snapshot=openings.find(s=>s.month===month)||(last&&month>last.month?last:null); if(!snapshot)return [];
  const map=new Map(snapshot.balances.map(b=>[b.account.replace(/\s*\(\$\)/g,'').trim(),{...b,account:b.account.replace(/\s*\(\$\)/g,'').trim()}]));
- for(const account of ['公积金','补充公积金'])if(!map.has(account)){const prior=records.filter(r=>!r.deleted&&r.account===account&&r.date<month+'-01');map.set(account,{account,currency:'CNY',amount:Math.round(prior.reduce((n,r)=>n-r.amount,0)*100)/100});}
+ for(const account of ['公积金','补充公积金'])if(!map.has(account)){const prior=records.filter(r=>!r.deleted&&r.account===account&&r.date<snapshot.month+'-01');map.set(account,{account,currency:'CNY',amount:Math.round(prior.reduce((n,r)=>n-r.amount,0)*100)/100});}
  // Gold was absent from the old monthly snapshots. Rebuild this holding only, without adding it twice.
- let gold=0;for(const r of records.filter(r=>!r.deleted&&r.date<month+'-01'&&r.investment?.asset==='gold').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9))){if(isValuation(r))gold=r.amount;else if(isInvestment(r)){if(r.investment.action==='buy')gold+=r.amount;else if(r.investment.remainingValue!=null)gold=r.investment.remainingValue;}}
+ let gold=0;for(const r of records.filter(r=>!r.deleted&&r.date<snapshot.month+'-01'&&r.investment?.asset==='gold').sort((a,b)=>a.date.localeCompare(b.date)||(a.source?.row??1e9)-(b.source?.row??1e9))){if(isValuation(r))gold=r.amount;else if(isInvestment(r)){if(r.investment.action==='buy')gold+=r.amount;else if(r.investment.remainingValue!=null)gold=r.investment.remainingValue;}}
  if(gold)map.set('黄金余额',{account:'黄金余额',currency:'CNY',amount:gold});
- const rs=records.filter(r=>!r.deleted&&r.date.startsWith(month)&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt));
+ const rs=records.filter(r=>!r.deleted&&r.date>=snapshot.month+'-01'&&r.date.slice(0,7)<=month&&(!asOf||r.date<=asOf)).sort((a,b)=>a.date.localeCompare(b.date)||((a.source?.row??1e9)-(b.source?.row??1e9))||(a.orderAt||a.updatedAt).localeCompare(b.orderAt||b.updatedAt));
  for(const r of rs)applyBalanceRecord(map,r);
  return [...map.values()];
 }

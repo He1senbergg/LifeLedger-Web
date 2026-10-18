@@ -2,7 +2,8 @@ import {accountBalances,applyBalanceRecord} from './core.mjs';
 export function balanceHistory(ledger,records,unit='month'){
  const live=records.filter(r=>!r.deleted),latest=live.reduce((date,r)=>r.date>date?r.date:date,'');if(!latest)return [];
  const months=[...new Set((ledger.snapshots||[]).filter(s=>s.position==='opening'&&s.month<=latest.slice(0,7)).map(s=>s.month))].sort();
- const points=[],byMonth=new Map,gold=live.filter(r=>r.investment?.asset==='gold');
+ if(months.length){let m=months.at(-1);while(m<latest.slice(0,7)){const d=new Date(m+'-01T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+1);m=d.toISOString().slice(0,7);months.push(m);}}
+ const points=[],byMonth=new Map;
  for(const r of live){const month=r.date.slice(0,7);if(!byMonth.has(month))byMonth.set(month,[]);byMonth.get(month).push(r);}
  for(const month of months){
   const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5)),0)).toISOString().slice(0,10),until=end<latest?end:latest;
