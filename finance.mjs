@@ -54,3 +54,11 @@ export function savingBaseline(records,today,meta={}){
  return {months,salary:Math.round(median(income)),routine:Math.round(median(routine)),annualBig:Math.round(big.reduce((a,b)=>a+b,0)/Math.max(1,months.length)*12)};
 }
 export function reachMonth(start,monthly,annualRate,target,limit=1200){if(start>=target)return 0;let value=start;const rate=Math.pow(1+annualRate,1/12)-1;for(let i=1;i<=limit;i++){value=value*(1+rate)+monthly;if(value>=target)return i;if(!Number.isFinite(value)||value<0)return null;}return null;}
+
+export function providentEntries({action,account,bank,amount,note=''}){
+ const value=Math.round(Number(amount)*100)/100;if(!['deposit','withdraw'].includes(action)||!['公积金','补充公积金'].includes(account)||!Number.isFinite(value)||value<=0||value>1e12)throw Error('请选择公积金账户，并填写大于0的金额。');
+ const common={currency:'CNY',tags:['公积金'],description:String(note).trim()};
+ if(action==='deposit')return [{...common,account,kind:'收入',category:account+'缴存到账',amount:-value}];
+ if(!bank||['公积金','补充公积金','理财余额','投资余额','国债余额','黄金余额','-'].includes(bank))throw Error('请选择提取到账的银行卡。');
+ return [{...common,account,kind:'-',category:account+'提取 → '+bank,amount:value},{...common,account:bank,kind:'-',category:account+'提取到账',amount:-value}];
+}

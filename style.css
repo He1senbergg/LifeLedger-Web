@@ -90,3 +90,5 @@ main,main>section,.panel,.form-grid,.form-grid>*,.metrics,.metrics>*,.project-ca
 /* Keep narrow platform controls aligned with the right edge, and leave room below pie callouts. */
 .platform-heading{flex-wrap:wrap;gap:12px;align-items:center}.platform-heading h2{min-width:0;flex:1 0 150px}.platform-heading>.button-row{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;max-width:100%}.platform-heading>.button-row button{max-width:100%;margin-bottom:0}.pie-mobile polyline{stroke-width:1.5;stroke-linejoin:round}
 @media(max-width:680px){.platform-heading h2{flex-basis:100%;margin-bottom:0}.platform-heading>.button-row{width:100%;justify-content:flex-end}.platform-heading>.button-row button{white-space:normal}}
+
+.provident-entry{display:block;margin:0 0 20px auto}#providentForm select,#providentForm input{width:100%}#providentEditor{max-width:600px}
